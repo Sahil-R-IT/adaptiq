@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdaptIQ — AI Quiz Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mark">◈</span>
+        <span class="logo-text">AdaptIQ</span>
+      </div>
+      <div class="top-actions">
+        <button id="dashboardBtn" class="btn-outline btn-small">Dashboard</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="hero" class="hero-section">
+      <div class="hero-bg-lines" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+
+      <div class="hero-content">
+        <p class="hero-eyebrow">Intelligent. Adaptive. Personal.</p>
+        <h1 class="hero-title">
+          Test what you know.<br />
+          <em>Fix what you don't.</em>
+        </h1>
+        <p class="hero-subtitle">
+          Type a topic, paste a URL, drop a YouTube link, or upload a file — AdaptIQ generates a
+          personalised quiz from any source.
+        </p>
+
+        <div class="generate-box">
+          <!-- Source mode tabs -->
+          <div class="source-tabs" role="tablist" aria-label="Quiz source type">
+            <button class="source-tab active" data-source="topic" role="tab">✏️ Topic</button>
+            <button class="source-tab" data-source="website" role="tab">🌐 Website</button>
+            <button class="source-tab" data-source="youtube" role="tab">▶️ YouTube</button>
+            <button class="source-tab" data-source="file" role="tab">📎 File</button>
+          </div>
+
+          <div class="prompt-shell">
+            <label for="topicInput" class="sr-only">Quiz prompt</label>
+            <textarea
+              id="topicInput"
+              class="topic-input topic-textarea"
+              rows="3"
+              spellcheck="false"
+              placeholder="Try: maths quiz&#10;or: https://en.wikipedia.org/wiki/Photosynthesis&#10;or: https://youtu.be/dQw4w9WgXcQ"
+            ></textarea>
+
+            <!-- Drop zone (shown when file tab active) -->
+            <div id="dropZone" class="drop-zone hidden" aria-label="File drop zone">
+              <div class="drop-zone-inner">
+                <span class="drop-icon">📂</span>
+                <p class="drop-label">Drag &amp; drop a file here</p>
+                <p class="drop-hint">PDF, TXT, DOCX · Images (PNG, JPG, WEBP)</p>
+                <label class="btn-browse" for="fileInput">Browse files</label>
+                <input type="file" id="fileInput" class="hidden" accept=".pdf,.txt,.docx,.doc,.md,.png,.jpg,.jpeg,.webp,.gif" />
+              </div>
+            </div>
+
+            <!-- Selected file preview -->
+            <div id="filePreview" class="file-preview hidden">
+              <div class="file-preview-inner">
+                <span id="fileIcon" class="file-type-icon">📄</span>
+                <span id="fileName" class="file-name"></span>
+                <button id="removeFileBtn" class="remove-file-btn" aria-label="Remove file">✕</button>
+              </div>
+            </div>
+
+            <!-- Detected source badge -->
+            <div id="sourceBadge" class="source-detected-badge hidden">
+              <span id="sourceIcon" class="source-badge-icon"></span>
+              <span id="sourceLabel" class="source-badge-label"></span>
+            </div>
+
+            <div class="prompt-actions">
+              <p class="prompt-helper" id="promptHelper">
+                Default = 10 questions · No type = mixed · No level = easy first, adaptive on retry
+              </p>
+              <button id="generateBtn" class="btn-primary">
+                <span>Generate Quiz</span>
+                <span class="btn-icon">→</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="topicError" class="field-error hidden">Please enter a topic or prompt.</div>
+        </div>
+
+        <div id="adaptiveBadge" class="adaptive-badge hidden">
+          <span class="badge-dot"></span>
+          <span>Adaptive mode — targeting weak concepts and mistakes</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="loadingSection" class="section-panel hidden">
+      <div class="loader-wrap">
+        <div class="loader-ring"></div>
+        <p id="loaderText" class="loader-text">Generating your quiz...</p>
+      </div>
+    </section>
+
+    <section id="quizSection" class="section-panel hidden">
+      <div class="quiz-header">
+        <div class="quiz-meta quiz-meta-stack">
+          <div>
+            <span id="quizTopicLabel" class="quiz-topic-label"></span>
+            <!-- Source info strip -->
+            <div id="quizSourceStrip" class="quiz-source-strip hidden">
+              <span id="quizSourceIcon" class="quiz-source-icon"></span>
+              <span id="quizSourceTitle" class="quiz-source-title"></span>
+            </div>
+            <p id="quizSubmeta" class="quiz-submeta"></p>
+          </div>
+          <div id="quizRequestTags" class="quiz-request-tags"></div>
+        </div>
+
+        <div id="weakConceptsPanel" class="weak-panel hidden">
+          <p class="weak-panel-title">Targeting weak concepts</p>
+          <div id="weakConceptTags" class="weak-tags"></div>
+        </div>
+      </div>
+
+      <form id="quizForm" novalidate>
+        <div id="questionsContainer" class="questions-container"></div>
+        <div class="submit-row">
+          <button type="button" id="submitBtn" class="btn-submit">Submit Answers</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="resultsSection" class="section-panel hidden">
+      <div class="results-header">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fill" cx="60" cy="60" r="52" id="ringFill"></circle>
+          </svg>
+          <div class="score-text">
+            <span id="scorePct" class="score-pct">0%</span>
+            <span class="score-label">score</span>
+          </div>
+        </div>
+
+        <div class="score-details">
+          <p id="scoreSummary" class="score-summary"></p>
+          <p id="scoreMessage" class="score-message"></p>
+          <div class="session-badges">
+            <span id="xpBadge" class="session-badge">+0 XP</span>
+            <span id="primaryLevelBadge" class="session-badge">easy</span>
+            <span id="mixBadge" class="session-badge">mix</span>
+            <span id="modeBadge" class="session-badge">standard</span>
+            <span id="sourceModeBadge" class="session-badge source-badge-pill hidden"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultsContainer" class="results-container"></div>
+
+      <div id="weakAreasSummary" class="weak-summary hidden">
+        <h3 class="weak-summary-title">Current Weak Areas</h3>
+        <div id="weakSummaryList" class="weak-summary-list"></div>
+      </div>
+
+      <div class="results-actions">
+        <button id="retryBtn" class="btn-secondary">Retry Adaptive Quiz</button>
+        <button id="newTopicBtn" class="btn-outline">New Topic</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="dashboardOverlay" class="dashboard-overlay hidden">
+    <div class="dashboard-panel">
+      <div class="dashboard-head">
+        <div>
+          <p class="panel-kicker">Your Progress</p>
+          <h2 class="panel-title">Analytics Dashboard</h2>
+        </div>
+        <div class="dashboard-actions">
+          <button id="refreshAnalyticsBtn" class="btn-outline btn-small">Refresh</button>
+          <button id="clearHistoryBtn" class="btn-danger btn-small">Clear History</button>
+          <button id="closeDashboardBtn" class="btn-outline btn-small">Close</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-label">Total XP</span>
+          <strong id="totalXpStat" class="stat-value">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Accuracy</span>
+          <strong id="accuracyStat" class="stat-value">0%</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Streak</span>
+          <strong id="streakStat" class="stat-value">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Quizzes</span>
+          <strong id="quizzesStat" class="stat-value">0</strong>
+        </article>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="analytics-card">
+          <div class="analytics-card-head">
+            <h3>Strong Areas</h3>
+            <span class="analytics-meta">what you handle well</span>
+          </div>
+          <div id="strongTopicList" class="analytics-list empty-state">No strong areas yet.</div>
+        </article>
+        <article class="analytics-card">
+          <div class="analytics-card-head">
+            <h3>Weak Areas</h3>
+            <span class="analytics-meta">what keeps failing</span>
+          </div>
+          <div id="weakTopicList" class="analytics-list empty-state">No weak areas yet.</div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+<footer class="site-footer">
+  <p>
+    AdaptIQ · Adaptive AI Quiz Engine · Topic · Website · YouTube · File
+  </p>
+
+  <p class="footer-team">
+    Built by 
+    <a href="https://www.linkedin.com/in/sahil-rabadi/?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base%3BhhXomggoRqay%2B3piL%2FenoQ%3D%3D" target="_blank" rel="noopener noreferrer">Sahil Rabadiya</a> ·
+    <a href="https://www.linkedin.com/in/jeel-nileshkumar-patel-0159203a5?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener noreferrer">Jeel Patel</a> ·
+    <a href="https://www.linkedin.com/in/pratik376" target="_blank" rel="noopener noreferrer">Pratik Babariya</a> ·
+    <a href="https://github.com/YOUR-REPO" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </p>
+</footer>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
