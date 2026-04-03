@@ -1,6 +1,6 @@
 # 🚀 Adaptiq
 
-> Turn any content — web pages, PDFs, YouTube videos, or documents — into clean, structured insights using AI.
+> Turn any content — web pages, PDFs, YouTube videos, or documents — into Quiz using AI.
 
 ---
 
